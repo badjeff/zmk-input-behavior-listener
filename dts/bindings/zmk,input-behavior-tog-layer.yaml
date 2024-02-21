@@ -1,0 +1,13 @@
+# Copyright (c) 2020 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: Input Behavior To Toggole Layer
+
+compatible: "zmk,input-behavior-tog-layer"
+
+include: one_param.yaml
+
+properties:
+  time-to-live-ms:
+    type: int
+    default: 500

@@ -1,0 +1,15 @@
+/*
+ * Copyright (c) 2020 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/ {
+    behaviors {
+        /omit-if-no-ref/ intl: input_behavior_tog_layer {
+            compatible = "zmk,input-behavior-tog-layer";
+            #binding-cells = <1>;
+            time-to-live-ms = <500>;
+        };
+    };
+};
