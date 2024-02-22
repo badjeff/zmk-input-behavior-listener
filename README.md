@@ -1,10 +1,10 @@
 # Inpuut Behavior Listener x Auto Toggle Mouse Key Layer
 
-This module added behavior bindings to input config of input subsystem for ZMK.
+This module add behaviors to input config of input subsystem for ZMK.
 
 ## What it does
 
-The module make a clone version of original input_listener.c, modified to allow a config being only enabled on specific layers. Also, allow to add behavior bindings per config. A simple input behavior 'auto toggle layer' is presented, it shows in practical case of auto toggle 'mouse key layer' while input events arriving from device and then switch off after a dedicated period.
+The module fork a version of `input_listener.c` as new compatible `zmk,input-behavior-listener` to intercept input events. Make input events being only enabling on specific `layers`. Also, adding `evt-type` and behavior `bindings` for pre-processing similar to conventional behavior mechanism. An input behavior `zmk,input-behavior-tog-layer` is presented, to show a practical user case of auto-toggle 'mouse key layer'. It would be triggered via `behavior_driver_api->binding_pressed()`, on input event raised and then switch off on idle after `time-to-live-ms`.
 
 ## Installation
 
@@ -36,15 +36,17 @@ Now, update your `shield.keymap` adding the behaviors.
 / {
         /* input config for mouse move mode on default layer (DEF & MSK) */
         tb0_mmv_ibl {
+                /* new forked compatible name */
                 compatible = "zmk,input-behavior-listener";
                 
                 /* the input point device alias */
                 device = <&pd0>;
 
-                /* only enable in layer DEF & MSK */
+                /* only enable in default layer (DEF) & mouse key layer (MSK) */
                 layers = <DEF MSK>;
 
                 /* event code value to override raw input event */
+                /* designed for switching to mouse scroll, xy-swap, precise-mode+, etc */
                 evt-type = <INPUT_EV_REL>;
                 x-input-code = <INPUT_REL_X>;
                 y-input-code = <INPUT_REL_Y>;
@@ -55,20 +57,24 @@ Now, update your `shield.keymap` adding the behaviors.
                 bindings = <&ib_tog_layer MSK>;
         };
   
-        /* input config for mouse scroll mode on high order layer (MSC) */
+        /* input config for mouse scroll mode on momentary mouse scoll layer (MSC) */
         tb0_msl_ibl {
                 compatible = "zmk,input-behavior-listener";
                 device = <&pd0>;
                 layers = <MSC>;
                 evt-type = <INPUT_EV_REL>;
+                
+                /* slienting x-axis with alt event code */
                 x-input-code = <INPUT_REL_MISC>;
                 y-input-code = <INPUT_REL_WHEEL>;
+
+                /* slow it down, and invent scrolling direction */
                 scale-multiplier = <1>;
                 scale-divisor = <8>;
                 y-invert;
         };
 
-        /* define how long to last for mouse key layer after activated */
+        /* adjust cooldown waiting period for mouse key layer (MSK) after activated */
         ib_tog_layer: ib_tog_layer {
                 compatible = "zmk,input-behavior-tog-layer";
                 #binding-cells = <1>;
