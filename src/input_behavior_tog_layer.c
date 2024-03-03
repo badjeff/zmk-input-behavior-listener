@@ -46,23 +46,19 @@ static int to_keymap_binding_pressed(struct zmk_behavior_binding *binding,
     const struct device *dev = zmk_behavior_get_binding(binding->behavior_dev);
     struct behavior_tog_layer_data *data = (struct behavior_tog_layer_data *)dev->data;
     const struct behavior_tog_layer_config *cfg = dev->config;
-
     data->toggle_layer = binding->param1;
     if (!zmk_keymap_layer_active(data->toggle_layer)) {
         LOG_DBG("activate layer %d", data->toggle_layer);
         zmk_keymap_layer_activate(data->toggle_layer);
     }
     k_work_schedule(&data->toggle_layer_deactivate_work, K_MSEC(cfg->time_to_live_ms));
-
-    return ZMK_BEHAVIOR_OPAQUE;
+    return ZMK_BEHAVIOR_TRANSPARENT;
 }
 
 static int input_behavior_to_init(const struct device *dev) {
     struct behavior_tog_layer_data *data = dev->data;
-
     data->dev = dev;
     k_work_init_delayable(&data->toggle_layer_deactivate_work, toggle_layer_deactivate_cb);
-
     return 0;
 };
 
@@ -70,14 +66,15 @@ static const struct behavior_driver_api behavior_tog_layer_driver_api = {
     .binding_pressed = to_keymap_binding_pressed,
 };
 
-#define KP_INST(n)                                                                                 \
-    static struct behavior_tog_layer_data behavior_tog_layer_data_##n = {};                        \
-    static struct behavior_tog_layer_config behavior_tog_layer_config_##n = {                      \
-        .time_to_live_ms = DT_INST_PROP(n, time_to_live_ms),                                       \
-    };                                                                                             \
-    BEHAVIOR_DT_INST_DEFINE(n, input_behavior_to_init, NULL,                                       \
-                            &behavior_tog_layer_data_##n, &behavior_tog_layer_config_##n,          \
-                            POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,                      \
+#define KP_INST(n)                                                                      \
+    static struct behavior_tog_layer_data behavior_tog_layer_data_##n = {};             \
+    static struct behavior_tog_layer_config behavior_tog_layer_config_##n = {           \
+        .time_to_live_ms = DT_INST_PROP(n, time_to_live_ms),                            \
+    };                                                                                  \
+    BEHAVIOR_DT_INST_DEFINE(n, input_behavior_to_init, NULL,                            \
+                            &behavior_tog_layer_data_##n,                               \
+                            &behavior_tog_layer_config_##n,                             \
+                            POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,           \
                             &behavior_tog_layer_driver_api);
 
 DT_INST_FOREACH_STATUS_OKAY(KP_INST)

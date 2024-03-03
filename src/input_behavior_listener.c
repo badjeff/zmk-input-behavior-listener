@@ -40,7 +40,6 @@ struct input_behavior_listener_xy_data {
 struct input_behavior_listener_data {
     struct input_behavior_listener_xy_data data;
     struct input_behavior_listener_xy_data wheel_data;
-
     uint8_t button_set;
     uint8_t button_clear;
 };
@@ -136,28 +135,6 @@ static bool intercept_with_input_config(const struct input_behavior_listener_con
         return false;
     }
 
-    for (uint8_t b = 0; b < cfg->bindings_count; b++) {
-        struct zmk_behavior_binding binding = cfg->bindings[b];
-        // LOG_DBG("layer: %d input: %s, binding name: %s", layer, evt->dev->name, binding.behavior_dev);
-
-        const struct device *behavior = zmk_behavior_get_binding(binding.behavior_dev);
-        if (!behavior) {
-            LOG_WRN("No behavior assigned to %s on layer %d", evt->dev->name, layer);
-            continue;
-        }
-
-        const struct behavior_driver_api *api = (const struct behavior_driver_api *)behavior->api;
-        if (api->binding_pressed == NULL) {
-            continue;
-        }
-        struct zmk_behavior_binding_event event = {
-            .layer = layer,
-            .position = 0,
-            .timestamp = k_uptime_get(),
-        };
-        api->binding_pressed(&binding, event);
-    }
-
     if (cfg->evt_type >= 0) {
         evt->type = cfg->evt_type;
     }
@@ -187,7 +164,67 @@ static bool intercept_with_input_config(const struct input_behavior_listener_con
 
     evt->value = (int16_t)((evt->value * cfg->scale_multiplier) / cfg->scale_divisor);
 
-    return true;
+    bool to_be_intercapted = true;
+
+    for (uint8_t b = 0; b < cfg->bindings_count; b++) {
+        struct zmk_behavior_binding binding = cfg->bindings[b];
+        // LOG_DBG("layer: %d input: %s, binding name: %s", layer, evt->dev->name, binding.behavior_dev);
+
+        const struct device *behavior = zmk_behavior_get_binding(binding.behavior_dev);
+        if (!behavior) {
+            LOG_WRN("No behavior assigned to %s on layer %d", evt->dev->name, layer);
+            continue;
+        }
+
+        const struct behavior_driver_api *api = (const struct behavior_driver_api *)behavior->api;
+        int ret = 0;
+
+        if (api->binding_pressed) {
+
+            struct zmk_behavior_binding_event event = {
+                .layer = layer, .timestamp = k_uptime_get(),
+                .position = (struct input_event *)evt, // util uint32_t to pass event ptr :)
+            };
+            ret = api->binding_pressed(&binding, event);
+
+        }
+        else if (api->sensor_binding_process) {
+
+            struct zmk_behavior_binding_event event = {
+                .layer = layer, .timestamp = k_uptime_get(),
+                .position = 0,
+            };
+            if (api->sensor_binding_accept_data) {
+                const struct zmk_sensor_config *sensor_config = 
+                    (const struct zmk_sensor_config *)cfg;
+                const struct zmk_sensor_channel_data val[] = {
+                    { .value = { .val1 = (struct input_event *)evt },
+                    .channel = SENSOR_CHAN_ALL, },
+                };
+                int ret = behavior_sensor_keymap_binding_accept_data(
+                    &binding, event, sensor_config, sizeof(val), val);
+                if (ret < 0) {
+                    LOG_WRN("behavior data accept for behavior %s returned an error (%d). "
+                            "Processing to continue to next layer",  binding.behavior_dev, ret);
+                }
+            }
+            enum behavior_sensor_binding_process_mode mode =
+                    BEHAVIOR_SENSOR_BINDING_PROCESS_MODE_TRIGGER;
+            ret = behavior_sensor_keymap_binding_process(&binding, event, mode);
+
+        }
+
+        if (ret == ZMK_BEHAVIOR_OPAQUE) {
+            // LOG_DBG("input event processing complete, behavior response was opaque");
+            to_be_intercapted = false;
+            break;
+        } else if (ret < 0) {
+            // LOG_DBG("input behavior returned error: %d", ret);
+            return ret;
+        }
+    }
+
+    return to_be_intercapted;
 }
 
 static void clear_xy_data(struct input_behavior_listener_xy_data *data) {
