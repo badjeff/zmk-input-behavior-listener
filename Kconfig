@@ -14,3 +14,7 @@ DT_COMPAT_ZMK_INPUT_BEHAVIOR_TOG_LAYER := zmk,input-behavior-tog-layer
 config ZMK_INPUT_BEHAVIOR_TOG_LAYER
 		bool
 		default $(dt_compat_enabled,$(DT_COMPAT_ZMK_INPUT_BEHAVIOR_TOG_LAYER))
+
+config ZMK_INPUT_BEHAVIOR_LISTENER_USE_HID_IO
+		bool "Use HID IO Module to send HID Report"
+		default n

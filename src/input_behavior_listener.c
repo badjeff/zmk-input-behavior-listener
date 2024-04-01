@@ -25,6 +25,14 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/event_manager.h>
 #include <zmk/events/layer_state_changed.h>
 
+#if IS_ENABLED(CONFIG_ZMK_INPUT_BEHAVIOR_LISTENER_USE_HID_IO)
+    #if IS_ENABLED(CONFIG_ZMK_HID_IO)
+        #define USE_HID_IO 1
+        #include <zmk/hid-io/endpoints.h>
+        #include <zmk/hid-io/hid.h>
+    #endif
+#endif
+
 enum input_behavior_listener_xy_data_mode {
     INPUT_LISTENER_XY_DATA_MODE_NONE,
     INPUT_LISTENER_XY_DATA_MODE_REL,
@@ -251,17 +259,41 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
 
     if (evt->sync) {
         if (data->wheel_data.mode == INPUT_LISTENER_XY_DATA_MODE_REL) {
-            zmk_hid_mouse_scroll_set(data->wheel_data.x, data->wheel_data.y);
+            #if USE_HID_IO
+                #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
+                zmk_hid_mou2_scroll_set(data->wheel_data.x, data->wheel_data.y);
+                #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
+                // no joystick scroll implemented
+                #endif
+            #else
+                zmk_hid_mouse_scroll_set(data->wheel_data.x, data->wheel_data.y);
+            #endif
         }
 
         if (data->data.mode == INPUT_LISTENER_XY_DATA_MODE_REL) {
-            zmk_hid_mouse_movement_set(data->data.x, data->data.y);
+            #if USE_HID_IO
+                #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
+                zmk_hid_mou2_movement_set(data->data.x, data->data.y);
+                #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
+                zmk_hid_joy2_movement_set(data->data.x, data->data.y);
+                #endif
+            #else
+                zmk_hid_mouse_movement_set(data->data.x, data->data.y);
+            #endif
         }
 
         if (data->button_set != 0) {
             for (int i = 0; i < ZMK_HID_MOUSE_NUM_BUTTONS; i++) {
                 if ((data->button_set & BIT(i)) != 0) {
-                    zmk_hid_mouse_button_press(i);
+                    #if USE_HID_IO
+                        #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
+                        zmk_hid_mou2_button_press(i);
+                        #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
+                        zmk_hid_joy2_button_press(i);
+                        #endif
+                    #else
+                        zmk_hid_mouse_button_press(i);
+                    #endif
                 }
             }
         }
@@ -269,14 +301,34 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
         if (data->button_clear != 0) {
             for (int i = 0; i < ZMK_HID_MOUSE_NUM_BUTTONS; i++) {
                 if ((data->button_clear & BIT(i)) != 0) {
-                    zmk_hid_mouse_button_release(i);
+                    #if USE_HID_IO
+                        #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
+                        zmk_hid_mou2_button_release(i);
+                        #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
+                        zmk_hid_joy2_button_release(i);
+                        #endif
+                    #else
+                        zmk_hid_mouse_button_release(i);
+                    #endif
                 }
             }
         }
 
-        zmk_endpoints_send_mouse_report();
-        zmk_hid_mouse_scroll_set(0, 0);
-        zmk_hid_mouse_movement_set(0, 0);
+        #if USE_HID_IO
+            #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
+            zmk_endpoints_send_mouse_report_alt();
+            zmk_hid_mou2_scroll_set(0, 0);
+            zmk_hid_mou2_movement_set(0, 0);
+            #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
+            zmk_endpoints_send_joystick_report_alt();
+            zmk_hid_joy2_movement_set(0, 0);
+            // no joystick scroll implemented
+            #endif
+        #else
+            zmk_endpoints_send_mouse_report();
+            zmk_hid_mouse_scroll_set(0, 0);
+            zmk_hid_mouse_movement_set(0, 0);
+        #endif
 
         clear_xy_data(&data->data);
         clear_xy_data(&data->wheel_data);

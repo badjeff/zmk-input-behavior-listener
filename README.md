@@ -96,3 +96,14 @@ Now, update your `shield.keymap` adding the behaviors.
 
 };
 ```
+
+## Troubleshooting
+
+If you got compile error of `undefined reference to `zmk_hid_mouse_XXXXXX_set'`, you are probably need to build with a ZMK branch with [PR 2027](https://github.com/zmkfirmware/zmk/pull/2027) merged.
+
+Or, you could try an alternative module [zmk-hid-io](https://github.com/badjeff/zmk-input-behavior-listener) by enable below config in your `<shield>.config` like below.
+
+```conf
+# Enable input behavior listener to use HID IO report
+CONFIG_ZMK_INPUT_BEHAVIOR_LISTENER_USE_HID_IO=y
+```
