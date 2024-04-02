@@ -99,9 +99,9 @@ Now, update your `shield.keymap` adding the behaviors.
 
 ## Troubleshooting
 
-If you got compile error of `undefined reference to `zmk_hid_mouse_XXXXXX_set'`, you are probably need to build with a ZMK branch with [PR 2027](https://github.com/zmkfirmware/zmk/pull/2027) merged.
+If you got compile error of `undefined reference to 'zmk_hid_mouse_XXXXXX_set'`, you are probably need to build with a ZMK branch with [PR 2027](https://github.com/zmkfirmware/zmk/pull/2027) merged. Without PR 2027, the mouse movement is not presented via HID Report and your cursor won't reflect the readings.
 
-Or, you could try an alternative module [zmk-hid-io](https://github.com/badjeff/zmk-input-behavior-listener) by enable below config in your `<shield>.config` like below.
+Or, you might try to develop an alttnative HID Usage Page with an experminatal module ([zmk-hid-io](https://github.com/badjeff/zmk-hid-io)) by adding below config in your `<shield>.config`.
 
 ```conf
 # Enable input behavior listener to use HID IO report
