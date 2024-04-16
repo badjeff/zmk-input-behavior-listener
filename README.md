@@ -55,6 +55,12 @@ Now, update your `shield.keymap` adding the behaviors.
 
                 /* bind a behavior to auto activate MSK layer for &mkp */
                 bindings = <&ib_tog_layer MSK>;
+
+                /* align to CCW 45 degree */
+                rotate-deg = <315>;
+                /* NOTE 1: This settings do not compitable with y-invert and x-invert */
+                /* NOTE 2: Floating point computation requires alot of ram. */
+                /*         This feature will cuase stackove flow with CONFIG_ZMK_USB_LOGGING=y */
         };
   
         /* input config for mouse scroll mode on momentary mouse scoll layer (MSC) */
@@ -72,6 +78,12 @@ Now, update your `shield.keymap` adding the behaviors.
                 scale-multiplier = <1>;
                 scale-divisor = <8>;
                 y-invert;
+
+                /* align to CCW 45 degree */
+                rotate-deg = <315>;
+                /* NOTE 1: This settings do not compitable with y-invert and x-invert */
+                /* NOTE 2: Floating point computation requires alot of ram. */
+                /*         This feature will cuase stackove flow with CONFIG_ZMK_USB_LOGGING=y */
         };
 
         /* adjust cooldown waiting period for mouse key layer (MSK) after activated */

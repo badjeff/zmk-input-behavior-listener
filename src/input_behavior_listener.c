@@ -33,6 +33,12 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
     #endif
 #endif
 
+#include <math.h>
+#ifndef M_PI
+#define M_PI (3.14159265358979323846f)
+#endif
+#include <zephyr/sys/util.h> // for CLAMP
+
 enum input_behavior_listener_xy_data_mode {
     INPUT_LISTENER_XY_DATA_MODE_NONE,
     INPUT_LISTENER_XY_DATA_MODE_REL,
@@ -46,6 +52,8 @@ struct input_behavior_listener_xy_data {
 };
 
 struct input_behavior_listener_data {
+    double_t sin;
+    double_t cos;
     struct input_behavior_listener_xy_data data;
     struct input_behavior_listener_xy_data wheel_data;
     uint8_t button_set;
@@ -58,6 +66,7 @@ struct input_behavior_listener_config {
     bool y_invert;
     uint16_t scale_multiplier;
     uint16_t scale_divisor;
+    uint16_t rotate_deg;
     int8_t evt_type;
     int8_t x_input_code;
     int8_t y_input_code;
@@ -259,6 +268,12 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
 
     if (evt->sync) {
         if (data->wheel_data.mode == INPUT_LISTENER_XY_DATA_MODE_REL) {
+            if (config->rotate_deg > 0) {
+                double_t x = data->wheel_data.x;
+                double_t y = data->wheel_data.y;
+                data->wheel_data.x = (data->cos * x) - (data->sin * y);
+                data->wheel_data.y = (data->sin * x) + (data->cos * y);
+            }
             #if USE_HID_IO
                 #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
                 zmk_hid_mou2_scroll_set(data->wheel_data.x, data->wheel_data.y);
@@ -271,6 +286,12 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
         }
 
         if (data->data.mode == INPUT_LISTENER_XY_DATA_MODE_REL) {
+            if (config->rotate_deg > 0) {
+                double_t x = data->data.x;
+                double_t y = data->data.y;
+                data->data.x = (data->cos * x) - (data->sin * y);
+                data->data.y = (data->sin * x) + (data->cos * y);
+            }
             #if USE_HID_IO
                 #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
                 zmk_hid_mou2_movement_set(data->data.x, data->data.y);
@@ -353,6 +374,7 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
         .y_invert = DT_INST_PROP(n, y_invert),                                                     \
         .scale_multiplier = DT_INST_PROP(n, scale_multiplier),                                     \
         .scale_divisor = DT_INST_PROP(n, scale_divisor),                                           \
+        .rotate_deg = DT_INST_PROP(n, rotate_deg),                                                 \
         .evt_type = DT_INST_PROP(n, evt_type),                                                     \
         .x_input_code = DT_INST_PROP(n, x_input_code),                                             \
         .y_input_code = DT_INST_PROP(n, y_input_code),                                             \
@@ -366,7 +388,10 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
             ({LISTIFY(DT_INST_PROP_LEN(n, bindings), IBL_EXTRACT_BINDING, (, ), n)}),              \
             ({})),                                                                                 \
     };                                                                                             \
-    static struct input_behavior_listener_data data_##n = {};                                      \
+    static struct input_behavior_listener_data data_##n = {                                        \
+        .sin = sin((DT_INST_PROP(n, rotate_deg) * M_PI / 180.0f)),                                 \
+        .cos = cos((DT_INST_PROP(n, rotate_deg) * M_PI / 180.0f)),                                 \
+    };                                                                                             \
     void input_behavior_handler_##n(struct input_event *evt) {                                     \
         input_behavior_handler(&config_##n, &data_##n, evt);                                       \
     }                                                                                              \
