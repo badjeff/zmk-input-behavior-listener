@@ -52,8 +52,8 @@ struct input_behavior_listener_xy_data {
 };
 
 struct input_behavior_listener_data {
-    double_t sin;
-    double_t cos;
+    float sin;
+    float cos;
     struct input_behavior_listener_xy_data data;
     struct input_behavior_listener_xy_data wheel_data;
     uint8_t button_set;
@@ -269,8 +269,8 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
     if (evt->sync) {
         if (data->wheel_data.mode == INPUT_LISTENER_XY_DATA_MODE_REL) {
             if (config->rotate_deg > 0) {
-                double_t x = data->wheel_data.x;
-                double_t y = data->wheel_data.y;
+                float x = data->wheel_data.x;
+                float y = data->wheel_data.y;
                 data->wheel_data.x = (data->cos * x) - (data->sin * y);
                 data->wheel_data.y = (data->sin * x) + (data->cos * y);
             }
@@ -287,8 +287,8 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
 
         if (data->data.mode == INPUT_LISTENER_XY_DATA_MODE_REL) {
             if (config->rotate_deg > 0) {
-                double_t x = data->data.x;
-                double_t y = data->data.y;
+                float x = data->data.x;
+                float y = data->data.y;
                 data->data.x = (data->cos * x) - (data->sin * y);
                 data->data.y = (data->sin * x) + (data->cos * y);
             }
@@ -389,8 +389,8 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
             ({})),                                                                                 \
     };                                                                                             \
     static struct input_behavior_listener_data data_##n = {                                        \
-        .sin = sin((DT_INST_PROP(n, rotate_deg) * M_PI / 180.0f)),                                 \
-        .cos = cos((DT_INST_PROP(n, rotate_deg) * M_PI / 180.0f)),                                 \
+        .sin = sinf((DT_INST_PROP(n, rotate_deg) * M_PI / 180.0f)),                                 \
+        .cos = cosf((DT_INST_PROP(n, rotate_deg) * M_PI / 180.0f)),                                 \
     };                                                                                             \
     void input_behavior_handler_##n(struct input_event *evt) {                                     \
         input_behavior_handler(&config_##n, &data_##n, evt);                                       \
