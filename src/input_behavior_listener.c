@@ -17,9 +17,9 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 // #if DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT)
 
-#include <zmk/mouse.h>
 #include <zmk/endpoints.h>
 #include <zmk/hid.h>
+#include <zmk/mouse/hid.h>
 #include <zmk/keymap.h>
 #include <zmk/behavior.h>
 #include <zmk/event_manager.h>
@@ -304,7 +304,7 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
         }
 
         if (data->button_set != 0) {
-            for (int i = 0; i < ZMK_HID_MOUSE_NUM_BUTTONS; i++) {
+            for (int i = 0; i < ZMK_MOUSE_HID_NUM_BUTTONS; i++) {
                 if ((data->button_set & BIT(i)) != 0) {
                     #if USE_HID_IO
                         #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
@@ -320,7 +320,7 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
         }
 
         if (data->button_clear != 0) {
-            for (int i = 0; i < ZMK_HID_MOUSE_NUM_BUTTONS; i++) {
+            for (int i = 0; i < ZMK_MOUSE_HID_NUM_BUTTONS; i++) {
                 if ((data->button_clear & BIT(i)) != 0) {
                     #if USE_HID_IO
                         #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
