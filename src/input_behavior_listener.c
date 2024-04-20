@@ -39,6 +39,13 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #endif
 #include <zephyr/sys/util.h> // for CLAMP
 
+#define ONE_IF_DEV_OK(n)                                                                           \
+    COND_CODE_1(DT_NODE_HAS_STATUS(DT_INST_PHANDLE(n, device), okay), (1 +), (0 +))
+
+#define VALID_LISTENER_COUNT (DT_INST_FOREACH_STATUS_OKAY(ONE_IF_DEV_OK) 0)
+
+#if VALID_LISTENER_COUNT > 0
+
 enum input_behavior_listener_xy_data_mode {
     INPUT_LISTENER_XY_DATA_MODE_NONE,
     INPUT_LISTENER_XY_DATA_MODE_REL,
@@ -52,12 +59,18 @@ struct input_behavior_listener_xy_data {
 };
 
 struct input_behavior_listener_data {
-    float sin;
-    float cos;
-    struct input_behavior_listener_xy_data data;
-    struct input_behavior_listener_xy_data wheel_data;
-    uint8_t button_set;
-    uint8_t button_clear;
+    union {
+        struct {
+            float sin;
+            float cos;
+
+            struct input_behavior_listener_xy_data data;
+            struct input_behavior_listener_xy_data wheel_data;
+
+            uint8_t button_set;
+            uint8_t button_clear;
+        } mouse;
+    };
 };
 
 struct input_behavior_listener_config {
@@ -76,30 +89,35 @@ struct input_behavior_listener_config {
     struct zmk_behavior_binding bindings[];
 };
 
-static void handle_rel_code(struct input_behavior_listener_data *data, struct input_event *evt) {
+static void handle_rel_code(const struct nput_behavior_listener_config *config,
+                            struct input_behavior_listener_data *data, struct input_event *evt) {
     switch (evt->code) {
     case INPUT_REL_X:
-        data->data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
-        data->data.x += evt->value;
+        data->mouse.data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
+        data->mouse.data.x += evt->value;
         break;
     case INPUT_REL_Y:
-        data->data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
-        data->data.y += evt->value;
+        data->mouse.data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
+        data->mouse.data.y += evt->value;
         break;
     case INPUT_REL_WHEEL:
-        data->wheel_data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
-        data->wheel_data.y += evt->value;
+        data->mouse.wheel_data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
+        data->mouse.wheel_data.y += evt->value;
         break;
     case INPUT_REL_HWHEEL:
-        data->wheel_data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
-        data->wheel_data.x += evt->value;
+        data->mouse.wheel_data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
+        data->mouse.wheel_data.x += evt->value;
         break;
     default:
         break;
     }
 }
 
-static void handle_key_code(struct input_behavior_listener_data *data, struct input_event *evt) {
+static void handle_abs_code(const struct nput_behavior_listener_config *config,
+                            struct input_behavior_listener_data *data, struct input_event *evt) {}
+
+static void handle_key_code(const struct nput_behavior_listener_config *config,
+                            struct input_behavior_listener_data *data, struct input_event *evt) {
     int8_t btn;
 
     switch (evt->code) {
@@ -110,9 +128,9 @@ static void handle_key_code(struct input_behavior_listener_data *data, struct in
     case INPUT_BTN_4:
         btn = evt->code - INPUT_BTN_0;
         if (evt->value > 0) {
-            WRITE_BIT(data->button_set, btn, 1);
+            WRITE_BIT(data->mouse.button_set, btn, 1);
         } else {
-            WRITE_BIT(data->button_clear, btn, 1);
+            WRITE_BIT(data->mouse.button_clear, btn, 1);
         }
         break;
     default:
@@ -135,6 +153,14 @@ static void swap_xy(struct input_event *evt) {
         evt->code = INPUT_REL_WHEEL;
         break;
     }
+}
+
+static inline bool is_x_data(const struct input_event *evt) {
+    return evt->type == INPUT_EV_REL && (evt->code == INPUT_REL_X || evt->code == INPUT_REL_HWHEEL);
+}
+
+static inline bool is_y_data(const struct input_event *evt) {
+    return evt->type == INPUT_EV_REL && (evt->code == INPUT_REL_Y || evt->code == INPUT_REL_WHEEL);
 }
 
 static bool intercept_with_input_config(const struct input_behavior_listener_config *cfg,
@@ -170,12 +196,7 @@ static bool intercept_with_input_config(const struct input_behavior_listener_con
         swap_xy(evt);
     }
 
-    if ((cfg->x_invert && evt->code == INPUT_REL_X) ||
-        (cfg->y_invert && evt->code == INPUT_REL_Y)) {
-        evt->value = -(evt->value);
-    }
-    else if ((cfg->x_invert && evt->code == INPUT_REL_HWHEEL) ||
-            (cfg->y_invert && evt->code == INPUT_REL_WHEEL)) {
+    if ((cfg->x_invert && is_x_data(evt)) || (cfg->y_invert && is_y_data(evt))) {
         evt->value = -(evt->value);
     }
 
@@ -259,53 +280,56 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
 
     switch (evt->type) {
     case INPUT_EV_REL:
-        handle_rel_code(data, evt);
+        handle_rel_code(config, data, evt);
+        break;
+    case INPUT_EV_ABS:
+        handle_abs_code(config, data, evt);
         break;
     case INPUT_EV_KEY:
-        handle_key_code(data, evt);
+        handle_key_code(config, data, evt);
         break;
     }
 
     if (evt->sync) {
-        if (data->wheel_data.mode == INPUT_LISTENER_XY_DATA_MODE_REL) {
+        if (data->mouse.wheel_data.mode == INPUT_LISTENER_XY_DATA_MODE_REL) {
             if (config->rotate_deg > 0) {
-                float x = data->wheel_data.x;
-                float y = data->wheel_data.y;
-                data->wheel_data.x = (data->cos * x) - (data->sin * y);
-                data->wheel_data.y = (data->sin * x) + (data->cos * y);
+                float x = data->mouse.wheel_data.x;
+                float y = data->mouse.wheel_data.y;
+                data->mouse.wheel_data.x = (data->mouse.cos * x) - (data->mouse.sin * y);
+                data->mouse.wheel_data.y = (data->mouse.sin * x) + (data->mouse.cos * y);
             }
             #if USE_HID_IO
                 #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
-                zmk_hid_mou2_scroll_set(data->wheel_data.x, data->wheel_data.y);
+                zmk_hid_mou2_scroll_set(data->mouse.wheel_data.x, data->mouse.wheel_data.y);
                 #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
                 // no joystick scroll implemented
                 #endif
             #else
-                zmk_hid_mouse_scroll_set(data->wheel_data.x, data->wheel_data.y);
+                zmk_hid_mouse_scroll_set(data->mouse.wheel_data.x, data->mouse.wheel_data.y);
             #endif
         }
 
-        if (data->data.mode == INPUT_LISTENER_XY_DATA_MODE_REL) {
+        if (data->mouse.data.mode == INPUT_LISTENER_XY_DATA_MODE_REL) {
             if (config->rotate_deg > 0) {
-                float x = data->data.x;
-                float y = data->data.y;
-                data->data.x = (data->cos * x) - (data->sin * y);
-                data->data.y = (data->sin * x) + (data->cos * y);
+                float x = data->mouse.data.x;
+                float y = data->mouse.data.y;
+                data->mouse.data.x = (data->mouse.cos * x) - (data->mouse.sin * y);
+                data->mouse.data.y = (data->mouse.sin * x) + (data->mouse.cos * y);
             }
             #if USE_HID_IO
                 #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
-                zmk_hid_mou2_movement_set(data->data.x, data->data.y);
+                zmk_hid_mou2_movement_set(data->mouse.data.x, data->mouse.data.y);
                 #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
-                zmk_hid_joy2_movement_set(data->data.x, data->data.y);
+                zmk_hid_joy2_movement_set(data->mouse.data.x, data->mouse.data.y);
                 #endif
             #else
-                zmk_hid_mouse_movement_set(data->data.x, data->data.y);
+                zmk_hid_mouse_movement_set(data->mouse.data.x, data->mouse.data.y);
             #endif
         }
 
-        if (data->button_set != 0) {
+        if (data->mouse.button_set != 0) {
             for (int i = 0; i < ZMK_MOUSE_HID_NUM_BUTTONS; i++) {
-                if ((data->button_set & BIT(i)) != 0) {
+                if ((data->mouse.button_set & BIT(i)) != 0) {
                     #if USE_HID_IO
                         #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
                         zmk_hid_mou2_button_press(i);
@@ -319,9 +343,9 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
             }
         }
 
-        if (data->button_clear != 0) {
+        if (data->mouse.button_clear != 0) {
             for (int i = 0; i < ZMK_MOUSE_HID_NUM_BUTTONS; i++) {
-                if ((data->button_clear & BIT(i)) != 0) {
+                if ((data->mouse.button_clear & BIT(i)) != 0) {
                     #if USE_HID_IO
                         #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
                         zmk_hid_mou2_button_release(i);
@@ -351,12 +375,14 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
             zmk_hid_mouse_movement_set(0, 0);
         #endif
 
-        clear_xy_data(&data->data);
-        clear_xy_data(&data->wheel_data);
+        clear_xy_data(&data->mouse.data);
+        clear_xy_data(&data->mouse.wheel_data);
 
-        data->button_set = data->button_clear = 0;
+        data->mouse.button_set = data->mouse.button_clear = 0;
     }
 }
+
+#endif // VALID_LISTENER_COUNT > 0
 
 #define IBL_EXTRACT_BINDING(idx, drv_inst)                                                         \
     {                                                                                              \
@@ -368,34 +394,40 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
     }
 
 #define IBL_INST(n)                                                                                \
-    static const struct input_behavior_listener_config config_##n = {                              \
-        .xy_swap = DT_INST_PROP(n, xy_swap),                                                       \
-        .x_invert = DT_INST_PROP(n, x_invert),                                                     \
-        .y_invert = DT_INST_PROP(n, y_invert),                                                     \
-        .scale_multiplier = DT_INST_PROP(n, scale_multiplier),                                     \
-        .scale_divisor = DT_INST_PROP(n, scale_divisor),                                           \
-        .rotate_deg = DT_INST_PROP(n, rotate_deg),                                                 \
-        .evt_type = DT_INST_PROP(n, evt_type),                                                     \
-        .x_input_code = DT_INST_PROP(n, x_input_code),                                             \
-        .y_input_code = DT_INST_PROP(n, y_input_code),                                             \
-        .layers_count = DT_INST_PROP_LEN(n, layers),                                               \
-        .layers = DT_INST_PROP(n, layers),                                                         \
-        .bindings_count = COND_CODE_1(                                                             \
-            DT_INST_NODE_HAS_PROP(n, bindings),                                                    \
-            (DT_INST_PROP_LEN(n, bindings)), (0)),                                                 \
-        .bindings = COND_CODE_1(                                                                   \
-            DT_INST_NODE_HAS_PROP(n, bindings),                                                    \
-            ({LISTIFY(DT_INST_PROP_LEN(n, bindings), IBL_EXTRACT_BINDING, (, ), n)}),              \
-            ({})),                                                                                 \
-    };                                                                                             \
-    static struct input_behavior_listener_data data_##n = {                                        \
-        .sin = sinf((DT_INST_PROP(n, rotate_deg) * M_PI / 180.0f)),                                 \
-        .cos = cosf((DT_INST_PROP(n, rotate_deg) * M_PI / 180.0f)),                                 \
-    };                                                                                             \
-    void input_behavior_handler_##n(struct input_event *evt) {                                     \
-        input_behavior_handler(&config_##n, &data_##n, evt);                                       \
-    }                                                                                              \
-    INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_INST_PHANDLE(n, device)), input_behavior_handler_##n);
+    COND_CODE_1(                                                                                   \
+        DT_NODE_HAS_STATUS(DT_INST_PHANDLE(n, device), okay),                                      \
+        (static const struct input_behavior_listener_config config_##n = {                         \
+            .xy_swap = DT_INST_PROP(n, xy_swap),                                                   \
+            .x_invert = DT_INST_PROP(n, x_invert),                                                 \
+            .y_invert = DT_INST_PROP(n, y_invert),                                                 \
+            .scale_multiplier = DT_INST_PROP(n, scale_multiplier),                                 \
+            .scale_divisor = DT_INST_PROP(n, scale_divisor),                                       \
+            .rotate_deg = DT_INST_PROP(n, rotate_deg),                                             \
+            .evt_type = DT_INST_PROP(n, evt_type),                                                 \
+            .x_input_code = DT_INST_PROP(n, x_input_code),                                         \
+            .y_input_code = DT_INST_PROP(n, y_input_code),                                         \
+            .layers_count = DT_INST_PROP_LEN(n, layers),                                           \
+            .layers = DT_INST_PROP(n, layers),                                                     \
+            .bindings_count = COND_CODE_1(                                                         \
+                DT_INST_NODE_HAS_PROP(n, bindings),                                                \
+                (DT_INST_PROP_LEN(n, bindings)), (0)),                                             \
+            .bindings = COND_CODE_1(                                                               \
+                DT_INST_NODE_HAS_PROP(n, bindings),                                                \
+                ({LISTIFY(DT_INST_PROP_LEN(n, bindings), IBL_EXTRACT_BINDING, (, ), n)}),          \
+                ({})),                                                                             \
+        };                                                                                         \
+        static struct input_behavior_listener_data data_##n = {                                    \
+            .mouse = {                                                                             \
+                .sin = sinf((DT_INST_PROP(n, rotate_deg) * M_PI / 180.0f)),                        \
+                .cos = cosf((DT_INST_PROP(n, rotate_deg) * M_PI / 180.0f)),                        \
+            },                                                                                     \
+        };                                                                                         \
+        void input_behavior_handler_##n(struct input_event *evt) {                                 \
+            input_behavior_handler(&config_##n, &data_##n, evt);                                   \
+        }                                                                                          \
+        INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_INST_PHANDLE(n, device)),                           \
+                             input_behavior_handler_##n);),                                        \
+        ())
 
 DT_INST_FOREACH_STATUS_OKAY(IBL_INST)
 
