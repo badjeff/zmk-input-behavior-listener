@@ -89,7 +89,7 @@ struct input_behavior_listener_config {
     struct zmk_behavior_binding bindings[];
 };
 
-static void handle_rel_code(const struct nput_behavior_listener_config *config,
+static void handle_rel_code(const struct input_behavior_listener_config *config,
                             struct input_behavior_listener_data *data, struct input_event *evt) {
     switch (evt->code) {
     case INPUT_REL_X:
@@ -113,10 +113,10 @@ static void handle_rel_code(const struct nput_behavior_listener_config *config,
     }
 }
 
-static void handle_abs_code(const struct nput_behavior_listener_config *config,
+static void handle_abs_code(const struct input_behavior_listener_config *config,
                             struct input_behavior_listener_data *data, struct input_event *evt) {}
 
-static void handle_key_code(const struct nput_behavior_listener_config *config,
+static void handle_key_code(const struct input_behavior_listener_config *config,
                             struct input_behavior_listener_data *data, struct input_event *evt) {
     int8_t btn;
 
