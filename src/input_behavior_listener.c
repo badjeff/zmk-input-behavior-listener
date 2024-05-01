@@ -178,17 +178,16 @@ static bool intercept_with_input_config(const struct input_behavior_listener_con
         return false;
     }
 
-    if (cfg->evt_type >= 0) {
-        evt->type = cfg->evt_type;
-    }
-    if ((evt->code == INPUT_REL_X) || (evt->code == INPUT_REL_HWHEEL)) {
-        if (cfg->x_input_code >= 0) {
-            evt->code = cfg->x_input_code;
+    if (cfg->evt_type >= 0 && evt->type == cfg->evt_type) {
+        if ((evt->code == INPUT_REL_X) || (evt->code == INPUT_REL_HWHEEL)) {
+            if (cfg->x_input_code >= 0) {
+                evt->code = cfg->x_input_code;
+            }
         }
-    }
-    if ((evt->code == INPUT_REL_Y) || (evt->code == INPUT_REL_WHEEL)) {
-        if (cfg->y_input_code >= 0) {
-            evt->code = cfg->y_input_code;
+        if ((evt->code == INPUT_REL_Y) || (evt->code == INPUT_REL_WHEEL)) {
+            if (cfg->y_input_code >= 0) {
+                evt->code = cfg->y_input_code;
+            }
         }
     }
 

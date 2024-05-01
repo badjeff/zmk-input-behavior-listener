@@ -47,6 +47,7 @@ Now, update your `shield.keymap` adding the behaviors.
 
                 /* event code value to override raw input event */
                 /* designed for switching to mouse scroll, xy-swap, precise-mode+, etc */
+                /* NOTE: only apply input-code overriding for INPUT_EV_REL */
                 evt-type = <INPUT_EV_REL>;
                 x-input-code = <INPUT_REL_X>;
                 y-input-code = <INPUT_REL_Y>;
