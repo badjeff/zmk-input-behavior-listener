@@ -102,11 +102,13 @@ static void handle_rel_code(const struct input_behavior_listener_config *config,
         break;
     case INPUT_REL_WHEEL:
         data->mouse.wheel_data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
-        data->mouse.wheel_data.y += evt->value;
+        if      (evt->value > 0) { data->mouse.wheel_data.y += 1; }
+        else if (evt->value < 0) { data->mouse.wheel_data.y -= 1; }
         break;
     case INPUT_REL_HWHEEL:
         data->mouse.wheel_data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
-        data->mouse.wheel_data.x += evt->value;
+        if      (evt->value > 0) { data->mouse.wheel_data.x += 1; }
+        else if (evt->value < 0) { data->mouse.wheel_data.x -= 1; }
         break;
     default:
         break;
