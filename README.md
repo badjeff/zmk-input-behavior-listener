@@ -1,6 +1,10 @@
-# Inpuut Behavior Listener x Auto Toggle Mouse Key Layer
+# Inpuut Behavior Listener
 
 This module add behaviors to input config of input subsystem for ZMK.
+
+Sample Behaviors:
+- `zmk,input-behavior-tog-layer`: Auto Toggle Mouse Key Layer, a.k.a auto-mouse-layer
+- `zmk,input-behavior-scaler`: Input Resolution Scaler, a behavior to accumulate delta value before casting to integer, that allows precise scrolling and better linear acceleration.
 
 ## What it does
 
@@ -75,9 +79,7 @@ Now, update your `shield.keymap` adding the behaviors.
                 x-input-code = <INPUT_REL_MISC>;
                 y-input-code = <INPUT_REL_WHEEL>;
 
-                /* slow it down, and invent scrolling direction */
-                scale-multiplier = <1>;
-                scale-divisor = <8>;
+                /* invent scrolling direction */
                 y-invert;
 
                 /* align to CCW 45 degree */
@@ -85,6 +87,12 @@ Now, update your `shield.keymap` adding the behaviors.
                 /* NOTE 1: This settings do not compitable with y-invert and x-invert */
                 /* NOTE 2: Floating point computation requires alot of ram. */
                 /*         This feature will cuase stackove flow with CONFIG_ZMK_USB_LOGGING=y */
+
+                /* bind a behavior to down scaling input value to (1/8) */
+                /* NOTE: This behavior is different to scale-divisor. */
+                /*       The delta value is accumlated until result >= 1 after cast. */
+                /*       The scrolling is preented in hi-res and allow precise scrolling */
+                bindings = <&ib_wheel_scaler 1 8>;
         };
 
         /* adjust cooldown waiting period for mouse key layer (MSK) after activated */
@@ -92,6 +100,14 @@ Now, update your `shield.keymap` adding the behaviors.
                 compatible = "zmk,input-behavior-tog-layer";
                 #binding-cells = <1>;
                 time-to-live-ms = <1000>;
+        };
+
+        /* define a resolution down scaler only for INPUT_REL_WHEEL */
+        ib_wheel_scaler: ib_wheel_scaler {
+                compatible = "zmk,input-behavior-scaler";
+                #binding-cells = <2>;
+                evt-type = <INPUT_EV_REL>;
+                input-code = <INPUT_REL_WHEEL>;
         };
 
         keymap {

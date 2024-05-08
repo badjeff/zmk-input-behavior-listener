@@ -1,0 +1,16 @@
+# Copyright (c) 2020 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: Input Behavior Scaler
+
+compatible: "zmk,input-behavior-scaler"
+
+include: two_param.yaml
+
+properties:
+  evt-type:
+    type: int
+    default: -1
+  input-code:
+    type: int
+    default: -1
