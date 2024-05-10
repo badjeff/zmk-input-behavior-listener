@@ -1,4 +1,4 @@
-# Inpuut Behavior Listener
+# Input Behavior Listener
 
 This module add behaviors to input config of input subsystem for ZMK.
 
