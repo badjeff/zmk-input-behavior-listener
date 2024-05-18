@@ -216,13 +216,26 @@ static bool intercept_with_input_config(const struct input_behavior_listener_con
         const struct behavior_driver_api *api = (const struct behavior_driver_api *)behavior->api;
         int ret = 0;
 
-        if (api->binding_pressed) {
+        if (api->binding_pressed || api->binding_released) {
 
             struct zmk_behavior_binding_event event = {
                 .layer = layer, .timestamp = k_uptime_get(),
                 .position = (struct input_event *)evt, // util uint32_t to pass event ptr :)
             };
-            ret = api->binding_pressed(&binding, event);
+
+            bool state = true;
+            if (evt->type == INPUT_EV_KEY) {
+                if (evt->code >= INPUT_BTN_0 && INPUT_BTN_0 <=INPUT_BTN_4) {
+                    state = (evt->value > 0);
+                }
+            }
+
+            if (api->binding_pressed && state) {
+                ret = api->binding_pressed(&binding, event);
+            }
+            else if (api->binding_released && !state) {
+                ret = api->binding_released(&binding, event);
+            }
 
         }
         else if (api->sensor_binding_process) {
