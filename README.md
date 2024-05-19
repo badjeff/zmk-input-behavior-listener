@@ -1,10 +1,10 @@
-# Input Behavior Listener
+# ZMK Input Behavior Listener
 
 This module add behaviors to input config of input subsystem for ZMK.
 
 Sample Behaviors:
 - `zmk,input-behavior-tog-layer`: Auto Toggle Mouse Key Layer, a.k.a auto-mouse-layer
-- `zmk,input-behavior-scaler`: Input Resolution Scaler, a behavior to accumulate delta value before casting to integer, that allows precise scrolling and better linear acceleration.
+- `zmk,input-behavior-scaler`: Input Resolution Scaler, a behavior to accumulate delta value before casting to integer, that allows precise scrolling and better linear acceleration on each axis of input device. Some retangular trackpad needs separated scale factor after swaping X/Y axis.
 
 ## What it does
 
