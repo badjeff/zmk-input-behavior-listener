@@ -24,6 +24,7 @@ struct behavior_tog_layer_config {
 
 struct behavior_tog_layer_data {
     uint8_t toggle_layer;
+    struct k_work_delayable toggle_layer_activate_work;
     struct k_work_delayable toggle_layer_deactivate_work;
     const struct device *dev;
 };
@@ -40,16 +41,24 @@ static void toggle_layer_deactivate_cb(struct k_work *work) {
     zmk_keymap_layer_deactivate(data->toggle_layer);
 }
 
+static void toggle_layer_activate_cb(struct k_work *work) {
+    struct k_work_delayable *work_delayable = (struct k_work_delayable *)work;
+    struct behavior_tog_layer_data *data = CONTAINER_OF(work_delayable, 
+                                                        struct behavior_tog_layer_data,
+                                                        toggle_layer_activate_work);
+    LOG_DBG("activate layer %d", data->toggle_layer);
+    zmk_keymap_layer_activate(data->toggle_layer);
+}
+
 static int to_keymap_binding_pressed(struct zmk_behavior_binding *binding,
                                      struct zmk_behavior_binding_event event) {
-
     const struct device *dev = zmk_behavior_get_binding(binding->behavior_dev);
     struct behavior_tog_layer_data *data = (struct behavior_tog_layer_data *)dev->data;
     const struct behavior_tog_layer_config *cfg = dev->config;
     data->toggle_layer = binding->param1;
     if (!zmk_keymap_layer_active(data->toggle_layer)) {
-        LOG_DBG("activate layer %d", data->toggle_layer);
-        zmk_keymap_layer_activate(data->toggle_layer);
+        // LOG_DBG("schedule activate layer %d", data->toggle_layer);
+        k_work_schedule(&data->toggle_layer_activate_work, K_MSEC(0));
     }
     k_work_schedule(&data->toggle_layer_deactivate_work, K_MSEC(cfg->time_to_live_ms));
     return ZMK_BEHAVIOR_TRANSPARENT;
@@ -58,6 +67,7 @@ static int to_keymap_binding_pressed(struct zmk_behavior_binding *binding,
 static int input_behavior_to_init(const struct device *dev) {
     struct behavior_tog_layer_data *data = dev->data;
     data->dev = dev;
+    k_work_init_delayable(&data->toggle_layer_activate_work, toggle_layer_activate_cb);
     k_work_init_delayable(&data->toggle_layer_deactivate_work, toggle_layer_deactivate_cb);
     return 0;
 };

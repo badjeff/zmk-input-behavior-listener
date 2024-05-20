@@ -214,7 +214,7 @@ static bool intercept_with_input_config(const struct input_behavior_listener_con
         }
 
         const struct behavior_driver_api *api = (const struct behavior_driver_api *)behavior->api;
-        int ret = 0;
+        int ret = ZMK_BEHAVIOR_TRANSPARENT;
 
         if (api->binding_pressed || api->binding_released) {
 
