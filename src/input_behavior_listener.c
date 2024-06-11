@@ -184,7 +184,7 @@ static bool intercept_with_input_config(const struct input_behavior_listener_con
                 evt->code = cfg->x_input_code;
             }
         }
-        if ((evt->code == INPUT_REL_Y) || (evt->code == INPUT_REL_WHEEL)) {
+        else if ((evt->code == INPUT_REL_Y) || (evt->code == INPUT_REL_WHEEL)) {
             if (cfg->y_input_code >= 0) {
                 evt->code = cfg->y_input_code;
             }
