@@ -53,6 +53,7 @@ static void handle_rel_code(const struct behavior_scaler_config *config,
     case INPUT_REL_Y:
     case INPUT_REL_WHEEL:
     case INPUT_REL_HWHEEL:
+    case INPUT_REL_MISC:
         data->data.mode = IB_SCALER_XY_DATA_MODE_REL;
         data->data.delta += evt->value;
         break;
@@ -97,6 +98,11 @@ static int scaler_keymap_binding_pressed(struct zmk_behavior_binding *binding,
 
     if (data->data.mode == IB_SCALER_XY_DATA_MODE_REL) {
         int16_t mul = binding->param1;
+        if (!mul) {
+            evt->value = 0;
+            // LOG_DBG("Suu~~~!");
+            return ZMK_BEHAVIOR_OPAQUE;
+        }
         int16_t div = binding->param2;
         int16_t delta = data->data.delta;
         int16_t sval = delta * mul / div;
