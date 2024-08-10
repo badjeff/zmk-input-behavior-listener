@@ -316,7 +316,7 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
                 #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
                 // no joystick scroll implemented
                 #endif
-            #else
+            #elif IS_ENABLED(CONFIG_ZMK_MOUSE)
                 zmk_hid_mouse_scroll_set(data->mouse.wheel_data.x, data->mouse.wheel_data.y);
             #endif
         }
@@ -334,7 +334,7 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
                 #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
                 zmk_hid_joy2_movement_set(data->mouse.data.x, data->mouse.data.y);
                 #endif
-            #else
+            #elif IS_ENABLED(CONFIG_ZMK_MOUSE)
                 zmk_hid_mouse_movement_set(data->mouse.data.x, data->mouse.data.y);
             #endif
         }
@@ -348,7 +348,7 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
                         #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
                         zmk_hid_joy2_button_press(i);
                         #endif
-                    #else
+                    #elif IS_ENABLED(CONFIG_ZMK_MOUSE)
                         zmk_hid_mouse_button_press(i);
                     #endif
                 }
@@ -364,7 +364,7 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
                         #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
                         zmk_hid_joy2_button_release(i);
                         #endif
-                    #else
+                    #elif IS_ENABLED(CONFIG_ZMK_MOUSE)
                         zmk_hid_mouse_button_release(i);
                     #endif
                 }
@@ -381,7 +381,7 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
             zmk_hid_joy2_movement_set(0, 0);
             // no joystick scroll implemented
             #endif
-        #else
+        #elif IS_ENABLED(CONFIG_ZMK_MOUSE)
             zmk_endpoints_send_mouse_report();
             zmk_hid_mouse_scroll_set(0, 0);
             zmk_hid_mouse_movement_set(0, 0);
