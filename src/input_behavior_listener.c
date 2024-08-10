@@ -225,7 +225,7 @@ static bool intercept_with_input_config(const struct input_behavior_listener_con
 
             bool state = true;
             if (evt->type == INPUT_EV_KEY) {
-                if (evt->code >= INPUT_BTN_0 && INPUT_BTN_0 <=INPUT_BTN_4) {
+                if (evt->code >= INPUT_BTN_0 && evt->code <= INPUT_BTN_8) {
                     state = (evt->value > 0);
                 }
             }
