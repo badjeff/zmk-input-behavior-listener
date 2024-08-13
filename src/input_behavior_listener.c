@@ -18,12 +18,15 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 // #if DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT)
 
 #include <zmk/endpoints.h>
-#include <zmk/hid.h>
-#include <zmk/mouse/hid.h>
+#include <zmk/hid.h
 #include <zmk/keymap.h>
 #include <zmk/behavior.h>
 #include <zmk/event_manager.h>
 #include <zmk/events/layer_state_changed.h>
+
+#ifndef ZMK_MOUSE_HID_NUM_BUTTONS
+#define ZMK_MOUSE_HID_NUM_BUTTONS 0x05
+#endif
 
 #if IS_ENABLED(CONFIG_ZMK_INPUT_BEHAVIOR_LISTENER_USE_HID_IO)
     #if IS_ENABLED(CONFIG_ZMK_HID_IO)
