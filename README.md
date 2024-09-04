@@ -2,13 +2,14 @@
 
 This module add behaviors to input config of input subsystem for ZMK.
 
-Sample Behaviors:
-- `zmk,input-behavior-tog-layer`: Auto Toggle Mouse Key Layer, a.k.a auto-mouse-layer
-- `zmk,input-behavior-scaler`: Input Resolution Scaler, a behavior to accumulate delta value before casting to integer, that allows precise scrolling and better linear acceleration on each axis of input device. Some retangular trackpad needs separated scale factor after swaping X/Y axis.
-
 ## What it does
 
-The module fork a version of `input_listener.c` as new compatible `zmk,input-behavior-listener` to intercept input events. Make input events being only enabling on specific `layers`. Also, adding `evt-type` and behavior `bindings` for pre-processing similar to conventional behavior mechanism. An input behavior `zmk,input-behavior-tog-layer` is presented, to show a practical user case of auto-toggle 'mouse key layer'. It would be triggered via `behavior_driver_api->binding_pressed()`, on input event raised and then switch off on idle after `time-to-live-ms`.
+The module fork the `input_listener.c` add extra configs declared as new a compatible `zmk,input-behavior-listener`, as an optional replacement of official `zmk,input-listener`. It intercepts input events from sensor device, only enabling on specific `layers`, adding `evt-type` and behavior `bindings` for pre-processing via the `input-behavior` bindings.
+
+Input-Behavior:
+- `zmk,input-behavior-tog-layer`: Auto Toggle Mouse Key Layer, a.k.a auto-mouse-layer. An input behavior `zmk,input-behavior-tog-layer` is presented, to show a practical user case of auto-toggle 'mouse key layer'. It would be triggered via `behavior_driver_api->binding_pressed()`, on input event raised and then switch off on idle after `time-to-live-ms`.
+- `zmk,input-behavior-scaler`: Input Resolution Scaler, a behavior to accumulate delta value before casting to integer, that allows precise scrolling and better linear acceleration on each axis of input device. Some retangular trackpad needs separated scale factor after swaping X/Y axis.
+- `zmk,input-behavior-mixer`: TBD, no schedule (yet).
 
 ## Installation
 
@@ -65,7 +66,7 @@ Now, update your `shield.keymap` adding the behaviors.
                 rotate-deg = <315>;
                 /* NOTE 1: This settings do not compitable with y-invert and x-invert */
                 /* NOTE 2: Floating point computation requires alot of ram. */
-                /*         This feature will cuase stackove flow with CONFIG_ZMK_USB_LOGGING=y */
+                /*         This feature will cuase stackover flow with CONFIG_ZMK_USB_LOGGING=y */
         };
   
         /* input config for mouse scroll mode on momentary mouse scoll layer (MSC) */
@@ -89,9 +90,9 @@ Now, update your `shield.keymap` adding the behaviors.
                 /*         This feature will cuase stackove flow with CONFIG_ZMK_USB_LOGGING=y */
 
                 /* bind a behavior to down scaling input value to (1/8) */
-                /* NOTE: This behavior is different to scale-divisor. */
+                /* NOTE: This behavior memorizes recent pending displacement, it is different to scale-divisor. */
                 /*       The delta value is accumlated until result >= 1 after cast. */
-                /*       The scrolling is preented in hi-res and allow precise scrolling */
+                /*       The scrolling will be smoother and allow precise scrolling */
                 bindings = <&ib_wheel_scaler 1 8>;
         };
 
