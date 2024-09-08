@@ -28,14 +28,6 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #define ZMK_MOUSE_HID_NUM_BUTTONS 0x05
 #endif
 
-#if IS_ENABLED(CONFIG_ZMK_INPUT_BEHAVIOR_LISTENER_USE_HID_IO)
-    #if IS_ENABLED(CONFIG_ZMK_HID_IO)
-        #define USE_HID_IO 1
-        #include <zmk/hid-io/endpoints.h>
-        #include <zmk/hid-io/hid.h>
-    #endif
-#endif
-
 #include <math.h>
 #ifndef M_PI
 #define M_PI (3.14159265358979323846f)
@@ -313,13 +305,7 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
                 data->mouse.wheel_data.x = (data->mouse.cos * x) - (data->mouse.sin * y);
                 data->mouse.wheel_data.y = (data->mouse.sin * x) + (data->mouse.cos * y);
             }
-            #if USE_HID_IO
-                #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
-                zmk_hid_mou2_scroll_set(data->mouse.wheel_data.x, data->mouse.wheel_data.y);
-                #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
-                // no joystick scroll implemented
-                #endif
-            #elif IS_ENABLED(CONFIG_ZMK_MOUSE)
+            #if IS_ENABLED(CONFIG_ZMK_MOUSE)
                 zmk_hid_mouse_scroll_set(data->mouse.wheel_data.x, data->mouse.wheel_data.y);
             #endif
         }
@@ -331,13 +317,7 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
                 data->mouse.data.x = (data->mouse.cos * x) - (data->mouse.sin * y);
                 data->mouse.data.y = (data->mouse.sin * x) + (data->mouse.cos * y);
             }
-            #if USE_HID_IO
-                #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
-                zmk_hid_mou2_movement_set(data->mouse.data.x, data->mouse.data.y);
-                #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
-                zmk_hid_joy2_movement_set(data->mouse.data.x, data->mouse.data.y);
-                #endif
-            #elif IS_ENABLED(CONFIG_ZMK_MOUSE)
+            #if IS_ENABLED(CONFIG_ZMK_MOUSE)
                 zmk_hid_mouse_movement_set(data->mouse.data.x, data->mouse.data.y);
             #endif
         }
@@ -345,13 +325,7 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
         if (data->mouse.button_set != 0) {
             for (int i = 0; i < ZMK_MOUSE_HID_NUM_BUTTONS; i++) {
                 if ((data->mouse.button_set & BIT(i)) != 0) {
-                    #if USE_HID_IO
-                        #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
-                        zmk_hid_mou2_button_press(i);
-                        #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
-                        zmk_hid_joy2_button_press(i);
-                        #endif
-                    #elif IS_ENABLED(CONFIG_ZMK_MOUSE)
+                    #if IS_ENABLED(CONFIG_ZMK_MOUSE)
                         zmk_hid_mouse_button_press(i);
                     #endif
                 }
@@ -361,30 +335,14 @@ static void input_behavior_handler(const struct input_behavior_listener_config *
         if (data->mouse.button_clear != 0) {
             for (int i = 0; i < ZMK_MOUSE_HID_NUM_BUTTONS; i++) {
                 if ((data->mouse.button_clear & BIT(i)) != 0) {
-                    #if USE_HID_IO
-                        #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
-                        zmk_hid_mou2_button_release(i);
-                        #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
-                        zmk_hid_joy2_button_release(i);
-                        #endif
-                    #elif IS_ENABLED(CONFIG_ZMK_MOUSE)
+                    #if IS_ENABLED(CONFIG_ZMK_MOUSE)
                         zmk_hid_mouse_button_release(i);
                     #endif
                 }
             }
         }
 
-        #if USE_HID_IO
-            #if IS_ENABLED(CONFIG_ZMK_HID_IO_MOUSE)
-            zmk_endpoints_send_mouse_report_alt();
-            zmk_hid_mou2_scroll_set(0, 0);
-            zmk_hid_mou2_movement_set(0, 0);
-            #elif IS_ENABLED(CONFIG_ZMK_HID_IO_JOYSTICK)
-            zmk_endpoints_send_joystick_report_alt();
-            zmk_hid_joy2_movement_set(0, 0);
-            // no joystick scroll implemented
-            #endif
-        #elif IS_ENABLED(CONFIG_ZMK_MOUSE)
+        #if IS_ENABLED(CONFIG_ZMK_MOUSE)
             zmk_endpoints_send_mouse_report();
             zmk_hid_mouse_scroll_set(0, 0);
             zmk_hid_mouse_movement_set(0, 0);
