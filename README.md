@@ -2,6 +2,10 @@
 
 This module add behaviors to input config of input subsystem for ZMK.
 
+> [!IMPORTANT]
+> UPDATE (2024-12-12): ZMK [PR #2477](https://github.com/zmkfirmware/zmk/pull/2477) has been merged into main branch. This module is no longer needed.
+> The details for the same functionality can be found on ZMK's [Input Processor Overview](https://zmk.dev/docs/keymaps/input-processors).
+
 ## What it does
 
 The module fork the `input_listener.c` add extra configs declared as new a compatible `zmk,input-behavior-listener`, as an optional replacement of official `zmk,input-listener`. It intercepts input events from sensor device, only enabling on specific `layers`, adding `evt-type` and behavior `bindings` for pre-processing via the `input-behavior` bindings.
